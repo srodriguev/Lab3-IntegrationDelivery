@@ -1,25 +1,21 @@
 pipeline {
     agent any
-
-    parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to deploy')
-    }
-
     environment {
-        PORT = (params.BRANCH_NAME == 'main') ? '3000' : '3001'
+        PORT = "${params.BRANCH_NAME == 'main' ? '3000' : '5000'}"
     }
-
     stages {
         stage('Checkout') {
             steps {
-                git branch: params.BRANCH_NAME, credentialsId: 'github-credentials', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
+                git branch: 'main', url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery'
             }
         }
-
-        stage('Deploy') {
+        stage('Print Environment') {
             steps {
-                sh "docker run -d -p ${PORT}:80 myapp:${params.BRANCH_NAME}"
+                script {
+                    echo "Running on port: ${PORT}"
+                }
             }
         }
     }
 }
+
