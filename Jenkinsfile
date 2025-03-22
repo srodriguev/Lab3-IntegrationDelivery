@@ -12,7 +12,9 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: env.BRANCH_NAME, credentialsId: 'github-credentials', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
+                git branch: env.BRANCH_NAME, 
+                    credentialsId: 'github-token-api',  
+                    url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
             }
         }
 
@@ -52,4 +54,3 @@ pipeline {
         }
     }
 }
-
