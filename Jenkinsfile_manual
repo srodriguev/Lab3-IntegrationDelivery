@@ -1,0 +1,25 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to deploy')
+    }
+
+    environment {
+        PORT = (params.BRANCH_NAME == 'main') ? '3000' : '3001'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: params.BRANCH_NAME, credentialsId: 'github-credentials', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "docker run -d -p ${PORT}:80 myapp:${params.BRANCH_NAME}"
+            }
+        }
+    }
+}
