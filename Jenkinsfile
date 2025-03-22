@@ -1,32 +1,44 @@
 pipeline {
     agent any
+
     environment {
-        PORT = "${env.BRANCH_NAME == 'main' ? '3000' : '3001'}"
+        PORT = (env.BRANCH_NAME == 'main') ? '3000' : '3001'
     }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: env.BRANCH_NAME, url: 'https://github.com/tu-usuario/tu-repo.git'
+                git branch: env.BRANCH_NAME, credentialsId: 'github-credentials', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
             }
         }
+
         stage('Build') {
             steps {
                 sh 'npm install'
             }
         }
+
         stage('Test') {
             steps {
                 sh 'npm test'
             }
         }
-        stage('Build Docker Image') {
+
+        stage('Change Logo') {
             steps {
-                sh "docker build -t my-app:${env.BRANCH_NAME} ."
+                sh "cp logos/${env.BRANCH_NAME}/logo.svg src/assets/logo.svg"
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t myapp:${env.BRANCH_NAME} ."
+            }
+        }
+
         stage('Deploy') {
             steps {
-                sh "docker run -d -p ${PORT}:${PORT} my-app:${env.BRANCH_NAME}"
+                sh "docker run -d -p ${PORT}:80 myapp:${env.BRANCH_NAME}"
             }
         }
     }
