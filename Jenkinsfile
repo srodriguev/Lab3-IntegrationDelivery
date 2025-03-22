@@ -35,7 +35,7 @@ pipeline {
 
         stage('Change Logo') {
             steps {
-                sh "cp logos/${env.BRANCH_NAME}/logo.svg src/logo2.svg"
+                sh "cp ${env.BRANCH_NAME}/src/logo.svg src/logo2.svg"
             }
         }
 
