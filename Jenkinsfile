@@ -1,11 +1,15 @@
 pipeline {
     agent any
 
-    environment {
-        PORT = (env.BRANCH_NAME == 'main') ? '3000' : '3001'
-    }
-
     stages {
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    env.PORT = (env.BRANCH_NAME == 'main') ? '3000' : '3001'
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 git branch: env.BRANCH_NAME, credentialsId: 'github-credentials', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
@@ -15,6 +19,9 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'npm install'
+                script {
+                    echo "Branch is: ${env.BRANCH_NAME}"
+                }
             }
         }
 
@@ -38,8 +45,11 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh "docker run -d -p ${PORT}:80 myapp:${env.BRANCH_NAME}"
+                script {
+                    sh "docker run -d -p ${env.PORT}:80 myapp:${env.BRANCH_NAME}"
+                }
             }
         }
     }
 }
+
