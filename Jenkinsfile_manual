@@ -1,69 +1,59 @@
 pipeline {
-    agent any
-
-    environment {
-        DOCKER_REGISTRY = "sarodriel"  // Set Docker Hub username
+    agent {
+        docker {
+            image 'node:18'
+        }
     }
-
+    parameters {
+        booleanParam(name: 'RUN_PIPELINE', defaultValue: false, description: 'Check to run the pipeline')
+    }
     stages {
-        stage('Set Variables') {
+        stage('Manual Trigger') {
+            when {
+                expression { params.RUN_PIPELINE }
+            }
             steps {
-                script {
-                    env.BRANCH_NAME = input(
-                        message: 'Select branch to deploy',
-                        parameters: [choice(name: 'BRANCH_NAME', choices: ['main', 'dev'])]
-                    )
-                    env.PORT = (env.BRANCH_NAME == 'main') ? '3000' : '3001'
-                    env.IMAGE_NAME = "myapp:${env.BRANCH_NAME}"
-                    env.FULL_IMAGE_NAME = "${env.DOCKER_REGISTRY}/${env.IMAGE_NAME}"
-                }
+                echo "Pipeline manually triggered"
             }
         }
-
         stage('Checkout') {
+            when {
+                expression { params.RUN_PIPELINE }
+            }
             steps {
-                git branch: env.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+                checkout scm
             }
         }
-
-        stage('Build Docker Image') {
+        stage('Install Dependencies') {
+            when {
+                expression { params.RUN_PIPELINE }
+            }
             steps {
-                sh "docker build -t ${env.FULL_IMAGE_NAME} ."
+                sh 'npm install'
             }
         }
-
-        stage('Login to Docker Hub') {
+        stage('Run Tests') {
+            when {
+                expression { params.RUN_PIPELINE }
+            }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                }
+                sh 'npm test'
             }
         }
-
-        stage('Push to Docker Hub') {
+        stage('Build App') {
+            when {
+                expression { params.RUN_PIPELINE }
+            }
             steps {
-                sh "docker push ${env.FULL_IMAGE_NAME}"
+                sh './scripts/build.sh'
             }
         }
-
-        stage('Deploy') {
-            steps {
-                script {
-                    // Stop and remove any running container on the same port
-                    sh "docker ps -q --filter 'expose=${env.PORT}' | xargs -r docker rm -f || true"
-
-                    // Pull the latest image
-                    sh "docker pull ${env.FULL_IMAGE_NAME}"
-
-                    // Run the new container
-                    sh "docker run -d -p ${env.PORT}:3000 ${env.FULL_IMAGE_NAME}"
-                }
+        stage('Run App') {
+            when {
+                expression { params.RUN_PIPELINE }
             }
-        }
-
-        stage('Logout from Docker Hub') {
             steps {
-                sh "docker logout"
+                sh 'npm start'
             }
         }
     }
