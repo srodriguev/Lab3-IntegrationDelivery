@@ -12,63 +12,67 @@ pipeline {
         CONTAINER_NAME = "my-manual-app-container"
     }
 
-    stage('Checkout') {
-            steps {
-                script {
-                    echo "Building branch: ${params.BRANCH_NAME}"
-                }
-                git branch: params.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
-            }
-        }
+    stages {
 
-        stage('Select Logo') {
-            steps {
-                script {
-                    if (params.BRANCH_NAME == 'main') {
-                        sh 'cp public/main_logo.svg src/logo.svg'
-                        env.PORT = '3000'
-                    } else if (params.BRANCH_NAME == 'dev') {
-                        sh 'cp public/dev_logo.svg src/logo.svg'
-                        env.PORT = '3001'
-                    } else {
-                        error "Branch no reconocido: ${params.BRANCH_NAME}"
+        stage('Checkout') {
+                steps {
+                    script {
+                        echo "Building branch: ${params.BRANCH_NAME}"
+                    }
+                    git branch: params.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+                }
+            }
+
+            stage('Select Logo') {
+                steps {
+                    script {
+                        if (params.BRANCH_NAME == 'main') {
+                            sh 'cp public/main_logo.svg src/logo.svg'
+                            env.PORT = '3000'
+                        } else if (params.BRANCH_NAME == 'dev') {
+                            sh 'cp public/dev_logo.svg src/logo.svg'
+                            env.PORT = '3001'
+                        } else {
+                            error "Branch no reconocido: ${params.BRANCH_NAME}"
+                        }
                     }
                 }
             }
-        }
 
-        stage('Build') {
-            steps {
-                sh 'npm install'
-                sh 'npm run build'
+            stage('Build') {
+                steps {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
             }
-        }
 
-        stage('Test') {
-            steps {
-                sh 'chmod +x scripts/test.sh && scripts/test.sh'
+            stage('Test') {
+                steps {
+                    sh 'chmod +x scripts/test.sh && scripts/test.sh'
+                }
             }
-        }
 
-        stage('Build Docker Image') {
-            steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            stage('Build Docker Image') {
+                steps {
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
             }
-        }
 
-        stage('Push to Docker Hub') {
-            steps {
-                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+            stage('Push to Docker Hub') {
+                steps {
+                    withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    }
+                }
+            }
+
+            stage('Deploy') {
+                steps {
+                    sh "docker stop my-app || true && docker rm my-app || true"
+                    sh "docker run -d --name my-app -p ${PORT}:80 ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh "docker stop my-app || true && docker rm my-app || true"
-                sh "docker run -d --name my-app -p ${PORT}:80 ${IMAGE_NAME}:${IMAGE_TAG}"
-            }
-        }
     }
 
