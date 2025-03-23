@@ -1,21 +1,44 @@
 pipeline {
     agent any
+
     environment {
-        PORT = "${params.BRANCH_NAME == 'main' ? '3000' : '5000'}"
+        BRANCH_NAME = input(message: 'Select branch to deploy', parameters: [choice(name: 'BRANCH_NAME', choices: ['main', 'dev'])])
+        PORT = (BRANCH_NAME == 'main') ? '3000' : '3001'
+        DOCKER_REGISTRY = "sarodriel"  // Set Docker Hub username
+        IMAGE_NAME = "myapp:${BRANCH_NAME}"
+        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
     }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery'
+                git branch: BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
             }
         }
-        stage('Print Environment') {
+
+        stage('Build Docker Image') {
             steps {
-                script {
-                    echo "Running on port: ${PORT}"
-                }
+                sh "docker build -t ${FULL_IMAGE_NAME} ."
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                sh "docker push ${FULL_IMAGE_NAME}"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                // Stop any existing container running on the same port
+                sh "docker ps -q --filter 'publish=${PORT}' | xargs -r docker stop"
+
+                // Pull the latest pushed image
+                sh "docker pull ${FULL_IMAGE_NAME}"
+
+                // Run the new container
+                sh "docker run -d -p ${PORT}:3000 ${FULL_IMAGE_NAME}"
             }
         }
     }
 }
-
