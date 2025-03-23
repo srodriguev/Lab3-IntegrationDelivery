@@ -2,30 +2,33 @@ pipeline {
     agent any
 
     environment {
-        BRANCH_NAME = input(message: 'Select branch to deploy', parameters: [choice(name: 'BRANCH_NAME', choices: ['main', 'dev'])])
         DOCKER_REGISTRY = "sarodriel"  // Set Docker Hub username
-        IMAGE_NAME = "myapp:${BRANCH_NAME}"
-        FULL_IMAGE_NAME = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
     }
 
     stages {
         stage('Set Variables') {
             steps {
                 script {
+                    env.BRANCH_NAME = input(
+                        message: 'Select branch to deploy',
+                        parameters: [choice(name: 'BRANCH_NAME', choices: ['main', 'dev'])]
+                    )
                     env.PORT = (env.BRANCH_NAME == 'main') ? '3000' : '3001'
+                    env.IMAGE_NAME = "myapp:${env.BRANCH_NAME}"
+                    env.FULL_IMAGE_NAME = "${env.DOCKER_REGISTRY}/${env.IMAGE_NAME}"
                 }
             }
         }
 
         stage('Checkout') {
             steps {
-                git branch: BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+                git branch: env.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${FULL_IMAGE_NAME} ."
+                sh "docker build -t ${env.FULL_IMAGE_NAME} ."
             }
         }
 
@@ -39,22 +42,28 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                sh "docker push ${FULL_IMAGE_NAME}"
+                sh "docker push ${env.FULL_IMAGE_NAME}"
             }
         }
 
         stage('Deploy') {
             steps {
                 script {
-                    // Stop any existing container running on the same port
-                    sh "docker ps -q --filter 'publish=${env.PORT}' | xargs -r docker stop || true"
+                    // Stop and remove any running container on the same port
+                    sh "docker ps -q --filter 'expose=${env.PORT}' | xargs -r docker rm -f || true"
 
-                    // Pull the latest pushed image
-                    sh "docker pull ${FULL_IMAGE_NAME}"
+                    // Pull the latest image
+                    sh "docker pull ${env.FULL_IMAGE_NAME}"
 
                     // Run the new container
-                    sh "docker run -d -p ${env.PORT}:3000 ${FULL_IMAGE_NAME}"
+                    sh "docker run -d -p ${env.PORT}:3000 ${env.FULL_IMAGE_NAME}"
                 }
+            }
+        }
+
+        stage('Logout from Docker Hub') {
+            steps {
+                sh "docker logout"
             }
         }
     }
