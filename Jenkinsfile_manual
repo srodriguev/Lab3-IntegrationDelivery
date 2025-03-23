@@ -48,7 +48,7 @@ pipeline {
                     sh 'docker rm $CONTAINER_NAME || true'
                     
                     // Correr la nueva versión del contenedor
-                    sh 'docker run -d --name $CONTAINER_NAME -p 8080:80 $IMAGE_NAME:$IMAGE_TAG'
+                    sh 'docker run -d --name $CONTAINER_NAME -p 3000:80 $IMAGE_NAME:$IMAGE_TAG'
                 }
             }
         }
