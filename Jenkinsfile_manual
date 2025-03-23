@@ -1,10 +1,15 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
+    }
+
     environment {
         IMAGE_NAME = 'sarodriel/my-app'
         IMAGE_TAG = 'latest'
         PORT = '3000'
+        CONTAINER_NAME = "my-manual-app-container"
     }
 
     stages {
