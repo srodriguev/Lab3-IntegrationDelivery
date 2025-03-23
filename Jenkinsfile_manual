@@ -1,59 +1,55 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18'
-        }
+    agent any
+
+    environment {
+        IMAGE_NAME = "sarisrove/my-app"  // Nombre de la imagen Docker
+        IMAGE_TAG = "latest"  // Tag de la imagen
+        CONTAINER_NAME = "my-manual-app-container"
     }
-    parameters {
-        booleanParam(name: 'RUN_PIPELINE', defaultValue: false, description: 'Check to run the pipeline')
-    }
+
     stages {
-        stage('Manual Trigger') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
-            steps {
-                echo "Pipeline manually triggered"
-            }
-        }
         stage('Checkout') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
             }
         }
-        stage('Install Dependencies') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
+
+        stage('Build') {
             steps {
-                sh 'npm install'
+                script {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
             }
         }
-        stage('Run Tests') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
+
+        stage('Test') {
             steps {
-                sh 'npm test'
+                script {
+                    sh 'chmod +x scripts/test.sh'  // Da permisos de ejecución
+                    sh './scripts/test.sh'  // Ejecuta el script de test
+                }
             }
         }
-        stage('Build App') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
+
+        stage('Build Docker Image') {
             steps {
-                sh './scripts/build.sh'
+                script {
+                    sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                }
             }
         }
-        stage('Run App') {
-            when {
-                expression { params.RUN_PIPELINE }
-            }
+
+        stage('Deploy') {
             steps {
-                sh 'npm start'
+                script {
+                    // Detener y eliminar el contenedor si ya existe
+                    sh 'docker stop $CONTAINER_NAME || true'
+                    sh 'docker rm $CONTAINER_NAME || true'
+                    
+                    // Correr la nueva versión del contenedor
+                    sh 'docker run -d --name $CONTAINER_NAME -p 8080:80 $IMAGE_NAME:$IMAGE_TAG'
+                }
             }
         }
     }
