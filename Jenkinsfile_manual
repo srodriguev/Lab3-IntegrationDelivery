@@ -2,56 +2,65 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "sarodriel/my-app"  // Nombre de la imagen Docker
-        IMAGE_TAG = "latest"  // Tag de la imagen
-        CONTAINER_NAME = "my-manual-app-container"
+        IMAGE_NAME = 'sarodriel/my-app'
+        IMAGE_TAG = 'latest'
+        PORT = '3000'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+                git branch: env.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+            }
+        }
+
+        stage('Select Logo') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        sh 'cp public/main_logo.svg src/logo.svg'
+                        env.PORT = '3000'
+                    } else if (env.BRANCH_NAME == 'dev') {
+                        sh 'cp public/dev_logo.svg src/logo.svg'
+                        env.PORT = '3001'
+                    } else {
+                        error "Branch no reconocido: ${env.BRANCH_NAME}"
+                    }
+                }
             }
         }
 
         stage('Build') {
             steps {
-                script {
-                    sh 'npm install'
-                    sh 'npm run build'
-                }
+                sh 'npm install'
+                sh 'npm run build'
             }
         }
 
         stage('Test') {
             steps {
-                script {
-                    sh 'chmod +x scripts/test.sh'  // Da permisos de ejecución
-                    sh './scripts/test.sh'  // Ejecuta el script de test
-                }
+                sh 'chmod +x scripts/test.sh && scripts/test.sh'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'IMAGE_TAG=$(date +%Y%m%d%H%M%S)'
-                    sh 'docker build -t sarodriel/my-app:$IMAGE_TAG .'
-                    sh 'docker push sarodriel/my-app:$IMAGE_TAG'
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                script {
-                    // Detener y eliminar el contenedor si ya existe
-                    sh 'docker stop $CONTAINER_NAME || true'
-                    sh 'docker rm $CONTAINER_NAME || true'
-                    
-                    // Correr la nueva versión del contenedor
-                    sh 'docker run -d --name $CONTAINER_NAME -p 3000:80 $IMAGE_NAME:$IMAGE_TAG'
-                }
+                sh "docker stop my-app || true && docker rm my-app || true"
+                sh "docker run -d --name my-app -p ${PORT}:80 ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
