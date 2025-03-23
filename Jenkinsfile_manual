@@ -12,10 +12,12 @@ pipeline {
         CONTAINER_NAME = "my-manual-app-container"
     }
 
-    stages {
-        stage('Checkout') {
+    stage('Checkout') {
             steps {
-                git branch: env.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+                script {
+                    echo "Building branch: ${params.BRANCH_NAME}"
+                }
+                git branch: params.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
             }
         }
 
