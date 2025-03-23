@@ -1,18 +1,16 @@
 pipeline {
     agent {
         docker {
-            image 'node:18'  // Use Node.js 18 Docker image
+            image 'node:18'  // Use a proper Node.js image
         }
     }
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh '''
+                npm config set cache /tmp/.npm
+                npm install
+                '''
             }
         }
         stage('Run Tests') {
@@ -22,12 +20,12 @@ pipeline {
         }
         stage('Build App') {
             steps {
-                sh './scripts/build.sh'
+                sh 'npm run build'
             }
         }
         stage('Run App') {
             steps {
-                sh 'npm start'
+                sh 'node src/index.js'
             }
         }
     }
