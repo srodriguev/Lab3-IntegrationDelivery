@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "sarisrove/my-app"  // Nombre de la imagen Docker
+        IMAGE_NAME = "sarodriel/my-app"  // Nombre de la imagen Docker
         IMAGE_TAG = "latest"  // Tag de la imagen
         CONTAINER_NAME = "my-manual-app-container"
     }
@@ -36,8 +36,8 @@ pipeline {
             steps {
                 script {
                     sh 'IMAGE_TAG=$(date +%Y%m%d%H%M%S)'
-                    sh 'docker build -t sarisrove/my-app:$IMAGE_TAG .'
-                    sh 'docker push sarisrove/my-app:$IMAGE_TAG'
+                    sh 'docker build -t sarodriel/my-app:$IMAGE_TAG .'
+                    sh 'docker push sarodriel/my-app:$IMAGE_TAG'
                 }
             }
         }
