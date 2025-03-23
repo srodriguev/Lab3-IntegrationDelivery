@@ -24,14 +24,14 @@ pipeline {
         stage('Select Logo') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'main') {
+                    if (params.BRANCH_NAME == 'main') {
                         sh 'cp public/main_logo.svg src/logo.svg'
                         env.PORT = '3000'
-                    } else if (env.BRANCH_NAME == 'dev') {
+                    } else if (params.BRANCH_NAME == 'dev') {
                         sh 'cp public/dev_logo.svg src/logo.svg'
                         env.PORT = '3001'
                     } else {
-                        error "Branch no reconocido: ${env.BRANCH_NAME}"
+                        error "Branch no reconocido: ${params.BRANCH_NAME}"
                     }
                 }
             }
@@ -71,4 +71,4 @@ pipeline {
             }
         }
     }
-}
+
