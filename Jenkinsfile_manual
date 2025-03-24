@@ -40,7 +40,6 @@ stage('Set Environment Variables') {
                     env.PORT = port
                     env.CONTAINER_NAME = containerName
 
-                    echo "Usando imagen: ${IMAGE_NAME} en puerto: ${PORT}"
                 }
             }
         }
@@ -82,6 +81,7 @@ stage('Set Environment Variables') {
 
         stage('Build Docker Image') {
             steps {
+                sh "echo 'Image name: ${IMAGE_NAME}'"
                 sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
