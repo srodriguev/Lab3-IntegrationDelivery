@@ -1,5 +1,12 @@
 pipeline {
-    agent any
+    
+    agent {
+        docker {
+            image 'docker:latest'
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+
+    }
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
@@ -9,20 +16,20 @@ pipeline {
         stage('Set Environment Variables') {
             steps {
                 script {
-                    // Usa params.BRANCH_NAME en lugar de env.BRANCH_NAME
                     def branch = params.BRANCH_NAME ?: 'main'
+                    def imageVersion = 'v1.0' 
                     def imageName = ''
                     def port = ''
                     def containerName = ''
 
                     if (branch == 'main') {
-                        imageName = 'sarodriel/nodemain'
+                        imageName = "sarodriel/nodemain:${imageVersion}"
                         port = '3000'
-                        containerName = 'my-manual-app-main'
+                        containerName = 'my-app-main'
                     } else if (branch == 'dev') {
-                        imageName = 'sarodriel/nodedev'
+                        imageName = "sarodriel/nodedev:${imageVersion}"
                         port = '3001'
-                        containerName = 'my-manual-app-dev'
+                        containerName = 'my-app-dev'
                     } else {
                         error "Branch no reconocido: ${branch}"
                     }
@@ -31,7 +38,6 @@ pipeline {
 
                     currentBuild.description = "Branch: ${branch}, Image: ${imageName}, Port: ${port}"
 
-                    // Exportar variables de entorno manualmente
                     env.IMAGE_NAME = imageName
                     env.PORT = port
                     env.CONTAINER_NAME = containerName
@@ -60,6 +66,18 @@ pipeline {
             }
         }
 
+        stage('Lint Dockerfile') {
+            steps {
+                sh 'docker run --rm -i hadolint/hadolint < Dockerfile'
+            }
+        }
+
+        stage('Install Node.js') {
+            steps {
+                sh 'apk add --no-cache nodejs npm'
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'npm install'
@@ -73,29 +91,32 @@ pipeline {
             }
         }
 
-        stage('Check Environment') {
+        stage('Security Scan') {
             steps {
-                sh 'env'
+                echo "🔍 Running security scan with Trivy"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_NAME} || true"
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh "echo 'Image name: ${env.IMAGE_NAME}'"
-                sh "docker build -t ${env.IMAGE_NAME}:v1.0 ."
+                sh "docker build -t ${env.IMAGE_NAME} ."
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                sh "docker push ${env.IMAGE_NAME}:v1.0"
+                withDockerRegistry(credentialsId: 'docker-hub-credentials', url: '') {
+                    sh "docker push ${env.IMAGE_NAME}"
+                }
             }
         }
 
         stage('Deploy') {
             steps {
                 sh "docker stop ${env.CONTAINER_NAME} || true && docker rm ${env.CONTAINER_NAME} || true"
-                sh "docker run -d --name ${env.CONTAINER_NAME} -p ${env.PORT}:3000 ${env.IMAGE_NAME}:v1.0"
+                sh "docker run -d --name ${env.CONTAINER_NAME} -p ${env.PORT}:3000 ${env.IMAGE_NAME}"
             }
         }
     }
