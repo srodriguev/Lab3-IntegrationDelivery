@@ -1,7 +1,15 @@
 @Library('MySharedLibrary') _
 
 pipeline {
-    agent any
+
+    // agent any
+    agent {
+        docker {
+            image 'node:18' // Usa un contenedor con Node.js para correr el pipeline
+            args '--user root' // Permite usar permisos de root si es necesario
+        }
+
+    }
 
     stages {
         stage('Set Environment Variables') {
