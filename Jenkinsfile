@@ -5,8 +5,8 @@ pipeline {
     // agent any
     agent {
         docker {
-            image 'node:18' // Usa un contenedor con Node.js para correr el pipeline
-            args '--user root' // Permite usar permisos de root si es necesario
+            image 'docker:latest'
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
 
     }
