@@ -80,16 +80,14 @@ pipeline {
             }
         }
 
+        @Library('MySharedLibrary') _
+
         stage('Deploy') {
             steps {
-                script {
-                    def containerToDelete = env.CONTAINER_NAME
-                    sh "docker ps -q --filter 'name=${containerToDelete}' | xargs -r docker stop"
-                    sh "docker ps -a -q --filter 'name=${containerToDelete}' | xargs -r docker rm"
-                    sh "docker run -d --name ${containerToDelete} -p ${env.PORT}:3000 ${env.IMAGE_NAME}"
-                }
+                deployApp(env.IMAGE_NAME, env.CONTAINER_NAME, env.PORT)
             }
         }
+
 
         stage('Trigger Deployment Pipeline') {
             steps {
