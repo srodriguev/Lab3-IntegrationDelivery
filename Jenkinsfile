@@ -74,6 +74,14 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                echo "🔍 Running security scan with Trivy"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_NAME} || true"
+            }
+        }
+        
+
         stage('Push to Docker Hub') {
             steps {
                 withDockerRegistry(credentialsId: 'docker-hub-credentials', url: '') {
