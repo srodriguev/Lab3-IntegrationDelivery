@@ -8,6 +8,7 @@ pipeline {
     environment {
         PORT = ''
         IMAGE_NAME = ''
+        IMAGE_TAG = 'latest'
         CONTAINER_NAME = ''
     }
 
@@ -76,6 +77,12 @@ stage('Set Environment Variables') {
         stage('Test') {
             steps {
                 sh 'chmod +x scripts/test.sh && scripts/test.sh'
+            }
+        }
+
+        stage('Check Environment') {
+            steps {
+                sh 'env'
             }
         }
 
