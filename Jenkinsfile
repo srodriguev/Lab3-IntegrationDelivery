@@ -68,6 +68,12 @@ pipeline {
             }
         }
 
+        stage('Install Node.js') {
+            steps {
+                sh 'apk add --no-cache nodejs npm'
+            }
+        }
+
 
         stage('Build') {
             steps {
