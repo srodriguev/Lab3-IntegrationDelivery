@@ -39,6 +39,8 @@ stage('Set Environment Variables') {
                     env.IMAGE_NAME = imageName
                     env.PORT = port
                     env.CONTAINER_NAME = containerName
+
+                    echo "Usando imagen: ${IMAGE_NAME} en puerto: ${PORT}"
                 }
             }
         }
