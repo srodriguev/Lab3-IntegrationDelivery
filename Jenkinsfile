@@ -1,5 +1,15 @@
+@Library('MySharedLibrary') _
+
 pipeline {
-    agent any
+
+    // agent any
+    agent {
+        docker {
+            image 'docker:latest'
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+
+    }
 
     stages {
         stage('Set Environment Variables') {
@@ -52,6 +62,19 @@ pipeline {
             }
         }
 
+        stage('Lint Dockerfile') {
+            steps {
+                sh 'docker run --rm -i hadolint/hadolint < Dockerfile'
+            }
+        }
+
+        stage('Install Node.js') {
+            steps {
+                sh 'apk add --no-cache nodejs npm'
+            }
+        }
+
+
         stage('Build') {
             steps {
                 sh 'npm install'
@@ -72,6 +95,14 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                echo "🔍 Running security scan with Trivy"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_NAME} || true"
+            }
+        }
+
+
         stage('Push to Docker Hub') {
             steps {
                 withDockerRegistry(credentialsId: 'docker-hub-credentials', url: '') {
@@ -80,16 +111,13 @@ pipeline {
             }
         }
 
+
         stage('Deploy') {
             steps {
-                script {
-                    def containerToDelete = env.CONTAINER_NAME
-                    sh "docker ps -q --filter 'name=${containerToDelete}' | xargs -r docker stop"
-                    sh "docker ps -a -q --filter 'name=${containerToDelete}' | xargs -r docker rm"
-                    sh "docker run -d --name ${containerToDelete} -p ${env.PORT}:3000 ${env.IMAGE_NAME}"
-                }
+                deployApp(env.IMAGE_NAME, env.CONTAINER_NAME, env.PORT)
             }
         }
+
 
         stage('Trigger Deployment Pipeline') {
             steps {
