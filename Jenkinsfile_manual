@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     // Usa env.BRANCH_NAME en lugar de params.BRANCH_NAME
-                    def branch = env.BRANCH_NAME ?: 'main'
+                    def branch = BRANCH_NAME ?: 'main'
                     def imageName = ''
                     def port = ''
                     def containerName = ''
