@@ -54,6 +54,13 @@ pipeline {
             }
         }
 
+        stage('Lint Dockerfile') {
+            steps {
+                sh 'docker run --rm -i hadolint/hadolint < Dockerfile'
+            }
+        }
+
+
         stage('Build') {
             steps {
                 sh 'npm install'
@@ -80,7 +87,7 @@ pipeline {
                 sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${env.IMAGE_NAME} || true"
             }
         }
-        
+
 
         stage('Push to Docker Hub') {
             steps {
