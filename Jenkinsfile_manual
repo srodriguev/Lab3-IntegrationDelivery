@@ -18,11 +18,11 @@ pipeline {
                     if (branch == 'main') {
                         imageName = "sarodriel/nodemain:${imageVersion}"
                         port = '3000'
-                        containerName = 'my-manual-app-main'
+                        containerName = 'my-app-main'
                     } else if (branch == 'dev') {
                         imageName = "sarodriel/nodedev:${imageVersion}"
                         port = '3001'
-                        containerName = 'my-manual-app-dev'
+                        containerName = 'my-app-dev'
                     } else {
                         error "Branch no reconocido: ${branch}"
                     }
