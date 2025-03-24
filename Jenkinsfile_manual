@@ -5,72 +5,98 @@ pipeline {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
     }
 
-    environment {
-        IMAGE_NAME = 'sarodriel/my-app'
-        IMAGE_TAG = 'latest'
-        PORT = '3000'
-        CONTAINER_NAME = "my-manual-app-container"
-    }
-
     stages {
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    // Usa params.BRANCH_NAME en lugar de env.BRANCH_NAME
+                    def branch = params.BRANCH_NAME ?: 'main'
+                    def imageName = ''
+                    def port = ''
+                    def containerName = ''
 
-        stage('Checkout') {
-                steps {
-                    script {
-                        echo "Building branch: ${params.BRANCH_NAME}"
+                    if (branch == 'main') {
+                        imageName = 'sarodriel/nodemain'
+                        port = '3000'
+                        containerName = 'my-manual-app-main'
+                    } else if (branch == 'dev') {
+                        imageName = 'sarodriel/nodedev'
+                        port = '3001'
+                        containerName = 'my-manual-app-dev'
+                    } else {
+                        error "Branch no reconocido: ${branch}"
                     }
-                    git branch: params.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
-                }
-            }
 
-            stage('Select Logo') {
-                steps {
-                    script {
-                        if (params.BRANCH_NAME == 'main') {
-                            sh 'cp public/main_logo.svg src/logo.svg'
-                            env.PORT = '3000'
-                        } else if (params.BRANCH_NAME == 'dev') {
-                            sh 'cp public/dev_logo.svg src/logo.svg'
-                            env.PORT = '3001'
-                        } else {
-                            error "Branch no reconocido: ${params.BRANCH_NAME}"
-                        }
-                    }
-                }
-            }
+                    echo "Usando imagen: ${imageName} en puerto: ${port}"
 
-            stage('Build') {
-                steps {
-                    sh 'npm install'
-                    sh 'npm run build'
-                }
-            }
+                    currentBuild.description = "Branch: ${branch}, Image: ${imageName}, Port: ${port}"
 
-            stage('Test') {
-                steps {
-                    sh 'chmod +x scripts/test.sh && scripts/test.sh'
-                }
-            }
-
-            stage('Build Docker Image') {
-                steps {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
-                }
-            }
-
-            stage('Push to Docker Hub') {
-                steps {
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                }
-            }
-
-            stage('Deploy') {
-                steps {
-                    sh "docker stop my-app || true && docker rm my-app || true"
-                    sh "docker run -d --name my-app -p ${PORT}:${PORT} ${IMAGE_NAME}:${IMAGE_TAG}"
+                    // Exportar variables de entorno manualmente
+                    env.IMAGE_NAME = imageName
+                    env.PORT = port
+                    env.CONTAINER_NAME = containerName
                 }
             }
         }
 
-    }
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "Building branch: ${params.BRANCH_NAME}"
+                }
+                git branch: params.BRANCH_NAME, url: 'https://github.com/srodriguev/Lab3-IntegrationDelivery.git'
+            }
+        }
 
+        stage('Select Logo') {
+            steps {
+                script {
+                    if (params.BRANCH_NAME == 'main') {
+                        sh 'cp public/main_logo.svg src/logo.svg'
+                    } else if (params.BRANCH_NAME == 'dev') {
+                        sh 'cp public/dev_logo.svg src/logo.svg'
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'chmod +x scripts/test.sh && scripts/test.sh'
+            }
+        }
+
+        stage('Check Environment') {
+            steps {
+                sh 'env'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "echo 'Image name: ${env.IMAGE_NAME}'"
+                sh "docker build -t ${env.IMAGE_NAME}:latest ."
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                sh "docker push ${env.IMAGE_NAME}:latest"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "docker stop ${env.CONTAINER_NAME} || true && docker rm ${env.CONTAINER_NAME} || true"
+                sh "docker run -d --name ${env.CONTAINER_NAME} -p ${env.PORT}:${env.PORT} ${env.IMAGE_NAME}:latest"
+            }
+        }
+    }
+}
