@@ -13,24 +13,36 @@ pipeline {
 
     stages {
 
-        stage('Set Environment Variables') {
+stage('Set Environment Variables') {
             steps {
                 script {
+                    def imageName = ''
+                    def port = ''
+                    def containerName = ''
+
                     if (params.BRANCH_NAME == 'main') {
-                        env.IMAGE_NAME = 'sarodriel/nodemain'
-                        env.PORT = '3000'
-                        env.CONTAINER_NAME = 'my-manual-app-main'
+                        imageName = 'sarodriel/nodemain'
+                        port = '3000'
+                        containerName = 'my-manual-app-main'
                     } else if (params.BRANCH_NAME == 'dev') {
-                        env.IMAGE_NAME = 'sarodriel/nodedev'
-                        env.PORT = '3001'
-                        env.CONTAINER_NAME = 'my-manual-app-dev'
+                        imageName = 'sarodriel/nodedev'
+                        port = '3001'
+                        containerName = 'my-manual-app-dev'
                     } else {
                         error "Branch no reconocido: ${params.BRANCH_NAME}"
                     }
-                    echo "Usando imagen: ${env.IMAGE_NAME} en puerto: ${env.PORT}"
+
+                    echo "Usando imagen: ${imageName} en puerto: ${port}"
+
+                    // Se guardan como variables del pipeline
+                    currentBuild.description = "Branch: ${params.BRANCH_NAME}, Image: ${imageName}, Port: ${port}"
+                    env.IMAGE_NAME = imageName
+                    env.PORT = port
+                    env.CONTAINER_NAME = containerName
                 }
             }
         }
+
 
         stage('Checkout') {
             steps {
