@@ -1,3 +1,5 @@
+@Library('MySharedLibrary') _
+
 pipeline {
     agent any
 
@@ -80,7 +82,6 @@ pipeline {
             }
         }
 
-        @Library('MySharedLibrary') _
 
         stage('Deploy') {
             steps {
