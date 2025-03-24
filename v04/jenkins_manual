@@ -5,12 +5,21 @@ pipeline {
         string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
     }
 
+    environment {
+        BRANCH_NAME = 'main'  // Valor por defecto
+        PORT = '3000'
+        IMAGE_NAME = 'sarodriel/nodemain'
+        IMAGE_TAG = 'latest'
+        CONTAINER_NAME = 'my-manual-app-main'
+    }
+
     stages {
+
         stage('Set Environment Variables') {
             steps {
                 script {
-                    // Usa params.BRANCH_NAME en lugar de env.BRANCH_NAME
-                    def branch = params.BRANCH_NAME ?: 'main'
+                    // Usa env.BRANCH_NAME en lugar de params.BRANCH_NAME
+                    def branch = env.BRANCH_NAME ?: 'main'
                     def imageName = ''
                     def port = ''
                     def containerName = ''
@@ -30,14 +39,13 @@ pipeline {
                     echo "Usando imagen: ${imageName} en puerto: ${port}"
 
                     currentBuild.description = "Branch: ${branch}, Image: ${imageName}, Port: ${port}"
-
-                    // Exportar variables de entorno manualmente
                     env.IMAGE_NAME = imageName
                     env.PORT = port
                     env.CONTAINER_NAME = containerName
                 }
             }
         }
+
 
         stage('Checkout') {
             steps {
@@ -81,21 +89,21 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "echo 'Image name: ${env.IMAGE_NAME}'"
-                sh "docker build -t ${env.IMAGE_NAME}:latest ."
+                sh "echo 'Image name: ${IMAGE_NAME}'"
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                sh "docker push ${env.IMAGE_NAME}:latest"
+                sh "docker push ${IMAGE_NAME}:latest"
             }
         }
 
         stage('Deploy') {
             steps {
-                sh "docker stop ${env.CONTAINER_NAME} || true && docker rm ${env.CONTAINER_NAME} || true"
-                sh "docker run -d --name ${env.CONTAINER_NAME} -p ${env.PORT}:${env.PORT} ${env.IMAGE_NAME}:latest"
+                sh "docker stop ${CONTAINER_NAME} || true && docker rm ${CONTAINER_NAME} || true"
+                sh "docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${IMAGE_NAME}:latest"
             }
         }
     }
