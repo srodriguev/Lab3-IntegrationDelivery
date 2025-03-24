@@ -1,11 +1,8 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
-    }
-
     environment {
+        BRANCH_NAME = 'main'  // Valor por defecto
         PORT = ''
         IMAGE_NAME = ''
         IMAGE_TAG = 'latest'
@@ -14,33 +11,33 @@ pipeline {
 
     stages {
 
-stage('Set Environment Variables') {
+        stage('Set Environment Variables') {
             steps {
                 script {
+                    // Usa env.BRANCH_NAME en lugar de params.BRANCH_NAME
+                    def branch = env.BRANCH_NAME ?: 'main'
                     def imageName = ''
                     def port = ''
                     def containerName = ''
 
-                    if (params.BRANCH_NAME == 'main') {
+                    if (branch == 'main') {
                         imageName = 'sarodriel/nodemain'
                         port = '3000'
                         containerName = 'my-manual-app-main'
-                    } else if (params.BRANCH_NAME == 'dev') {
+                    } else if (branch == 'dev') {
                         imageName = 'sarodriel/nodedev'
                         port = '3001'
                         containerName = 'my-manual-app-dev'
                     } else {
-                        error "Branch no reconocido: ${params.BRANCH_NAME}"
+                        error "Branch no reconocido: ${branch}"
                     }
 
                     echo "Usando imagen: ${imageName} en puerto: ${port}"
 
-                    // Se guardan como variables del pipeline
-                    currentBuild.description = "Branch: ${params.BRANCH_NAME}, Image: ${imageName}, Port: ${port}"
+                    currentBuild.description = "Branch: ${branch}, Image: ${imageName}, Port: ${port}"
                     env.IMAGE_NAME = imageName
                     env.PORT = port
                     env.CONTAINER_NAME = containerName
-
                 }
             }
         }
