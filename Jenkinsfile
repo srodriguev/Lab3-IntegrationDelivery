@@ -74,14 +74,32 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                sh "docker push ${env.IMAGE_NAME}"
+                withDockerRegistry(credentialsId: 'docker-hub-credentials', url: '') {
+                    sh "docker push ${env.IMAGE_NAME}"
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                sh "docker stop ${env.CONTAINER_NAME} || true && docker rm ${env.CONTAINER_NAME} || true"
-                sh "docker run -d --name ${env.CONTAINER_NAME} -p ${env.PORT}:3000 ${env.IMAGE_NAME}"
+                script {
+                    def containerToDelete = env.CONTAINER_NAME
+                    sh "docker ps -q --filter 'name=${containerToDelete}' | xargs -r docker stop"
+                    sh "docker ps -a -q --filter 'name=${containerToDelete}' | xargs -r docker rm"
+                    sh "docker run -d --name ${containerToDelete} -p ${env.PORT}:3000 ${env.IMAGE_NAME}"
+                }
+            }
+        }
+
+        stage('Trigger Deployment Pipeline') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        build job: 'Deploy_to_main'
+                    } else if (env.BRANCH_NAME == 'dev') {
+                        build job: 'Deploy_to_dev'
+                    }
+                }
             }
         }
     }
