@@ -82,13 +82,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh "echo 'Image name: ${env.IMAGE_NAME}'"
-                sh "docker build -t ${env.IMAGE_NAME}:latest ."
+                sh "docker build -t ${env.IMAGE_NAME}:v1.0 ."
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                sh "docker push ${env.IMAGE_NAME}:latest"
+                sh "docker push ${env.IMAGE_NAME}:v1.0"
             }
         }
 
