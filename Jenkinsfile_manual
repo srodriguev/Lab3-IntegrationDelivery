@@ -1,12 +1,16 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
+    }
+
     environment {
         BRANCH_NAME = 'main'  // Valor por defecto
-        PORT = ''
-        IMAGE_NAME = ''
+        PORT = '3000'
+        IMAGE_NAME = 'sarodriel/nodemain'
         IMAGE_TAG = 'latest'
-        CONTAINER_NAME = ''
+        CONTAINER_NAME = 'my-manual-app-main'
     }
 
     stages {
