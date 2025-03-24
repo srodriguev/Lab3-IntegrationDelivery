@@ -39,9 +39,9 @@ pipeline {
                     echo "Usando imagen: ${imageName} en puerto: ${port}"
 
                     currentBuild.description = "Branch: ${branch}, Image: ${imageName}, Port: ${port}"
-                    env.IMAGE_NAME = imageName
-                    env.PORT = port
-                    env.CONTAINER_NAME = containerName
+                    IMAGE_NAME = imageName
+                    PORT = port
+                    CONTAINER_NAME = containerName
                 }
             }
         }
